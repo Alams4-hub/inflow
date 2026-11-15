@@ -95,3 +95,13 @@ export function lockBox(current: Box, detected: Box): Box {
   const resized = Math.abs(detected.w - current.w) / current.w > 0.15;
   return moved || resized ? detected : current;
 }
+
+// Is the person looking at the screen? Uses MediaPipe's eye blendshapes (0 to 1).
+// Looking at the screen (not exactly the camera) is fine, so only clear glances away count.
+export function lookingAtScreen(blendshapes: Record<string, number>): boolean {
+  const b = (name: string) => blendshapes[name] ?? 0;
+  const sideways = Math.max(b("eyeLookOutLeft"), b("eyeLookOutRight"), b("eyeLookInLeft"), b("eyeLookInRight"));
+  const up = Math.min(b("eyeLookUpLeft"), b("eyeLookUpRight"));
+  const down = Math.min(b("eyeLookDownLeft"), b("eyeLookDownRight"));
+  return sideways < 0.55 && up < 0.5 && down < 0.65;
+}

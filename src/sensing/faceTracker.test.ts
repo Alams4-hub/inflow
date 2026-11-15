@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { foreheadFromPoints, lockBox, skinRegionsFromPoints, type Box } from "./faceTracker";
+import { foreheadFromPoints, lockBox, lookingAtScreen, skinRegionsFromPoints, type Box } from "./faceTracker";
 
 describe("foreheadFromPoints", () => {
   const face = [
@@ -80,5 +80,17 @@ describe("skinRegionsFromPoints", () => {
       expect(r.y).toBeGreaterThanOrEqual(0.2);
       expect(r.y + r.h).toBeLessThanOrEqual(0.8);
     }
+  });
+});
+
+describe("lookingAtScreen", () => {
+  it("counts a centered gaze as on screen", () => {
+    expect(lookingAtScreen({ eyeLookDownLeft: 0.3, eyeLookDownRight: 0.3 })).toBe(true);
+  });
+  it("counts a clear glance to the side as away", () => {
+    expect(lookingAtScreen({ eyeLookOutLeft: 0.8, eyeLookInRight: 0.75 })).toBe(false);
+  });
+  it("counts looking up at the ceiling as away", () => {
+    expect(lookingAtScreen({ eyeLookUpLeft: 0.7, eyeLookUpRight: 0.65 })).toBe(false);
   });
 });

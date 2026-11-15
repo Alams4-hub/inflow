@@ -20,6 +20,8 @@ type FakeVideo = {
   motionAmp?: number;
   drift?: number; // slow lighting change over the whole clip (fraction)
   stepAt?: number; // seconds: sudden lighting change (someone turns on a lamp)
+  pulse?: number; // how strong the pulse color change is (darker skin = fainter), default 1
+  light?: number; // overall brightness of the scene, default 1
   seed?: number;
 };
 
@@ -33,8 +35,8 @@ function fakeVideo(o: FakeVideo): Sample[] {
   const out: Sample[] = [];
   for (let t = 0; t < seconds * 1000; t += frameMs + ((o.jitterMs ?? 0) * (random() * 2 - 1))) {
     const s = t / 1000;
-    const pulse = Math.sin(2 * Math.PI * (o.bpm / 60) * s);
-    let light = 1 + (o.drift ?? 0) * (s / seconds);
+    const pulse = (o.pulse ?? 1) * Math.sin(2 * Math.PI * (o.bpm / 60) * s);
+    let light = (o.light ?? 1) * (1 + (o.drift ?? 0) * (s / seconds));
     if (o.motionBpm) light *= 1 + (o.motionAmp ?? 0.01) * Math.sin(2 * Math.PI * (o.motionBpm / 60) * s);
     if (o.stepAt !== undefined && s > o.stepAt) light *= 1.08;
     const n = () => (o.noise ?? 0.5) * (random() - 0.5);
@@ -138,5 +140,45 @@ describe("estimateBpm: quality score", () => {
       expect(q).toBeGreaterThanOrEqual(0);
       expect(q).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+// Darker skin has more melanin, which absorbs more light, so the pulse's color change is
+// fainter compared with camera noise. These use rough skin colors and pulse strengths for
+// lighter to darker skin. They check that InFlow still works on darker skin in normal light,
+// and that when the signal really is too faint it says so (low quality) instead of guessing.
+describe("estimateBpm: different skin tones", () => {
+  const TONES: { name: string; skin: [number, number, number]; pulse: number }[] = [
+    { name: "lighter skin", skin: [220, 175, 150], pulse: 1 },
+    { name: "medium skin", skin: [170, 120, 95], pulse: 0.7 },
+    { name: "darker skin", skin: [95, 62, 48], pulse: 0.4 },
+    { name: "very dark skin", skin: [60, 40, 32], pulse: 0.25 },
+  ];
+
+  // How many of 20 different heart rates (58 to 117 BPM) come out within 3 BPM.
+  function hits(o: Omit<FakeVideo, "bpm" | "seed">): number {
+    let ok = 0;
+    for (let k = 0; k < 20; k++) {
+      const bpm = 58 + k * 3.1;
+      const est = estimateBpm(fakeVideo({ ...o, bpm, seed: k + 7 }));
+      if (est && Math.abs(est.bpm - bpm) <= 3) ok++;
+    }
+    return ok;
+  }
+
+  for (const tone of TONES) {
+    it(`gets ${tone.name} right in normal light`, () => {
+      expect(hits({ skin: tone.skin, pulse: tone.pulse, noise: 1 })).toBeGreaterThanOrEqual(19);
+    });
+  }
+
+  it("still works on darker skin with a noisier camera", () => {
+    expect(hits({ skin: [95, 62, 48], pulse: 0.4, noise: 2 })).toBeGreaterThanOrEqual(15);
+  });
+
+  it("admits a weak signal (low quality) instead of faking confidence when it's too dark to read", () => {
+    const hard = estimateBpm(fakeVideo({ bpm: 75, skin: [60, 40, 32], pulse: 0.25, light: 0.5, noise: 3, seed: 3 }))!;
+    const easy = estimateBpm(fakeVideo({ bpm: 75, skin: [220, 175, 150], pulse: 1, noise: 1, seed: 3 }))!;
+    expect(hard.quality).toBeLessThan(easy.quality / 2);
   });
 });

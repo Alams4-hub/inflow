@@ -131,7 +131,7 @@ export default function CodeSession({ sensing, onCoach }: Props) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="code-toolbar">
         <label htmlFor="problem" style={{ color: color.muted }}>
           Practice problem
         </label>
@@ -139,7 +139,7 @@ export default function CodeSession({ sensing, onCoach }: Props) {
           id="problem"
           value={problem.id}
           onChange={(e) => restart(PROBLEMS.find((p) => p.id === e.target.value) ?? PROBLEMS[0])}
-          style={{ maxWidth: 360 }}
+          style={{ maxWidth: 360, borderRadius: 999, padding: "10px 18px" }}
         >
           <optgroup label="Fix the bug">
             {FIX_PROBLEMS.map((p) => (
@@ -175,24 +175,14 @@ export default function CodeSession({ sensing, onCoach }: Props) {
         <div
           key={nudge.level}
           role="status"
-          className="slide-down"
-          style={{
-            marginBottom: 16,
-            padding: "14px 18px",
-            borderRadius: 14,
-            background: "#FBF1DC",
-            border: `1px solid ${color.alert}`,
-            display: "flex",
-            gap: 16,
-            alignItems: "flex-start",
-          }}
+          className="nudge slide-down"
         >
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, color: color.muted, marginBottom: 2 }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontSize: 14, color: color.alertInk, fontWeight: 600, marginBottom: 6 }}>
               InFlow is stepping in with a {LEVEL_NAMES[nudge.level]}
               {nudge.fromAi ? "" : " (built-in hint)"}
             </div>
-            <div style={{ fontSize: 17 }}>{nudge.text}</div>
+            <div className="voice" style={{ fontSize: "1.5rem", lineHeight: 1.35 }}>{nudge.text}</div>
           </div>
           <button className="secondary" onClick={() => setNudge(null)}>
             Got it

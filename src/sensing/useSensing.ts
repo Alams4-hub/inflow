@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { lightingTip } from "./lighting";
 import { estimateBpm, type Sample } from "./heartRate";
-import { createFaceTracker, lockBox, type Box } from "./faceTracker";
+import { createFaceTracker, lockBox, lookingAtScreen, type Box } from "./faceTracker";
 import { BpmSmoother } from "./bpmSmoother";
 import { Baseline } from "../engine/baseline";
 
@@ -11,6 +12,7 @@ const REGION_PX_H = 16;
 const WINDOW_MS = 12_000; // use the last 12 seconds of video
 
 export type BpmPoint = { t: number; bpm: number }; // t = Date.now() time
+export type GazePoint = { t: number; onScreen: boolean }; // about 6 per second
 
 export type SensingState = {
   bpm: number | null; // steady heart rate (null until readings agree)
@@ -25,6 +27,7 @@ export type SensingState = {
 };
 
 const MAX_HISTORY = 60 * 60; // keep up to one hour of readings
+const MAX_GAZE = 6 * 60 * 20; // about 20 minutes of gaze checks
 
 // Runs the camera, face tracking, and heart-rate estimation.
 // Returns `attachVideo` to put on a <video> element, plus the latest readings.
@@ -32,6 +35,8 @@ const MAX_HISTORY = 60 * 60; // keep up to one hour of readings
 export function useSensing() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Where you were looking, kept in a ref (not state) so it doesn't re-render the app 6 times a second.
+  const gazeRef = useRef<GazePoint[]>([]);
   const attachVideo = useCallback((el: HTMLVideoElement | null) => {
     videoRef.current = el;
     if (el && streamRef.current && el.srcObject !== streamRef.current) el.srcObject = streamRef.current;
@@ -66,6 +71,7 @@ export function useSensing() {
     const update = (patch: Partial<SensingState>) => setState((s) => ({ ...s, ...patch }));
     let lastStatus = "";
     // Only update the status text when it actually changes (avoids extra re-renders).
+    let lightTip: string | null = null; // advice about the light on your face, if it's hurting the reading
     const showStatus = (text: string) => {
       if (text !== lastStatus) {
         lastStatus = text;
@@ -93,12 +99,15 @@ export function useSensing() {
         lastDetect = now;
         const face = tracker.detect(video);
         faceVisible = face !== null;
+        const gaze = gazeRef.current;
+        gaze.push({ t: Date.now(), onScreen: face !== null && lookingAtScreen(face.blendshapes) });
+        if (gaze.length > MAX_GAZE) gaze.splice(0, gaze.length - MAX_GAZE);
         if (face) {
           // Keep all boxes still unless the head really moved (checked using the forehead box).
           const moved = lockBox(regions[0], face.regions[0]) !== regions[0];
           if (moved || regions.length !== face.regions.length) regions = face.regions;
         }
-        showStatus(face ? "Reading your pulse" : "Can't see your face. Look at the camera.");
+        showStatus(face ? (lightTip ?? "Reading your pulse") : "Can't see your face. Look at the camera.");
       }
 
       if (!newFrame || !faceVisible) return;
@@ -127,6 +136,16 @@ export function useSensing() {
       if (now - lastEstimate > 1000) {
         lastEstimate = now;
         const result = estimateBpm(samples);
+        // Check the light on your face over the last couple of seconds.
+        const recent = samples.slice(-60);
+        lightTip = result
+          ? lightingTip(
+              recent.reduce((a, p) => a + p.r, 0) / recent.length,
+              recent.reduce((a, p) => a + p.g, 0) / recent.length,
+              recent.reduce((a, p) => a + p.b, 0) / recent.length,
+              result.quality,
+            )
+          : null;
         if (result) {
           const steady = smoother.push(result.bpm);
           if (steady.bpm !== null) baseline.add(steady.bpm);
@@ -196,5 +215,5 @@ export function useSensing() {
     };
   }, []);
 
-  return { attachVideo, ...state };
+  return { attachVideo, gazeRef, ...state };
 }

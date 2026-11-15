@@ -75,6 +75,10 @@ describe("nervesVerdict", () => {
     expect(nervesVerdict("Calm", messy)).toBe("Steady");
   });
 
+  it("won't judge a two-word answer, even with a high heart rate", () => {
+    expect(nervesVerdict("High", speechStats(say("prompting cloud", 2.5)))).toBe("Too short to judge");
+  });
+
   it("says no reading when heart rate wasn't available", () => {
     expect(nervesVerdict("Calibrating", clean)).toBe("No heart reading");
   });

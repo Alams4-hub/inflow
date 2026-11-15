@@ -40,11 +40,11 @@ export default function CodeMode({ problem, onRun, onEdit }: Props) {
 
   return (
     <div>
-      <h2>{problem.title}</h2>
-      <p style={{ color: color.muted }}>{problem.prompt}</p>
+      <h2 className="code-title">{problem.title}</h2>
+      <p className="code-prompt">{problem.prompt}</p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 3fr) minmax(240px, 2fr)", gap: 16, alignItems: "start" }}>
-      <div style={{ border: `1px solid ${color.line}`, borderRadius: 14, overflow: "hidden", background: color.surface }}>
+      <div className="code-grid">
+      <div className="editor-well">
       <Editor
         height="320px"
         defaultLanguage="python"
@@ -54,13 +54,13 @@ export default function CodeMode({ problem, onRun, onEdit }: Props) {
           setCode(value ?? "");
           onEdit();
         }}
-        options={{ fontSize: 15, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 12 } }}
+        options={{ fontSize: 15, lineHeight: 24, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 12 }, renderLineHighlight: "none", overviewRulerBorder: false }}
       />
       </div>
 
       {/* Tests panel: always visible, so you know what's being checked before you run. */}
-      <div style={{ background: color.surface, border: `1px solid ${color.line}`, borderRadius: 14, padding: "14px 16px" }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>Tests your code needs to pass</div>
+      <div className="tests-panel">
+        <h3>Tests your code needs to pass</h3>
         {problem.tests.map((t, i) => {
           const { call, expected } = describeTest(t, problem.functionName);
           const detail = result?.details.find((d) => d.name === t.name);
@@ -71,12 +71,28 @@ export default function CodeMode({ problem, onRun, onEdit }: Props) {
             <div
               key={`${runCount}-${t.name}`}
               className={result ? "row-in" : undefined}
-              style={{ display: "flex", gap: 10, padding: "8px 0", borderTop: i === 0 ? "none" : `1px solid ${color.surface2}`, animationDelay: `${(i + 1) * 90}ms` }}
+              style={{ display: "flex", gap: 14, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${color.line}`, animationDelay: `${(i + 1) * 90}ms` }}
             >
-              <span style={{ color: markColor, fontWeight: 700, width: 14 }} aria-label={state}>
-                {mark}
+              <span
+                style={{
+                  color: state === "not-run" ? color.muted : "#fff",
+                  background: state === "not-run" ? "transparent" : markColor,
+                  border: state === "not-run" ? `1.5px solid ${color.line}` : "none",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  width: 22,
+                  height: 22,
+                  borderRadius: "50%",
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                  marginTop: 1,
+                }}
+                aria-label={state}
+              >
+                {state === "not-run" ? "" : mark}
               </span>
-              <div style={{ minWidth: 0, fontSize: 14 }}>
+              <div style={{ minWidth: 0, fontSize: 15 }}>
                 <code style={{ wordBreak: "break-word" }}>{call}</code>
                 <div style={{ color: color.muted }}>
                   should be <code>{expected}</code>
@@ -96,7 +112,7 @@ export default function CodeMode({ problem, onRun, onEdit }: Props) {
       <button
         onClick={run}
         disabled={!ready || running}
-        style={{ marginTop: 16 }}
+        style={{ marginTop: 24, fontSize: 18, padding: "14px 32px" }}
       >
         {loadError ? "Python failed to load" : !ready ? "Loading Python..." : running ? "Running..." : "Run tests"}
       </button>
@@ -108,12 +124,12 @@ export default function CodeMode({ problem, onRun, onEdit }: Props) {
               Your code couldn't run: {result.error}
             </div>
           ) : (
-            <div className="row-in" style={{ fontWeight: 600 }}>
+            <div className="row-in voice" style={{ fontSize: "1.5rem" }}>
               {result.passed} of {result.total} tests passing
             </div>
           )}
           {result.printed && (
-            <pre style={{ background: color.surface2, padding: 12, borderRadius: 10, color: color.ink }}>{result.printed}</pre>
+            <pre style={{ background: color.surface, padding: "14px 18px", borderRadius: 18, color: color.ink }}>{result.printed}</pre>
           )}
         </div>
       )}

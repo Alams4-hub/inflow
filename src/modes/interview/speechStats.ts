@@ -17,6 +17,14 @@ export type SpeechStats = {
 const FILLERS = new Set(["um", "uh", "er", "ah", "erm", "hmm", "uhm", "umm", "uhh"]);
 const LONG_PAUSE_SEC = 2;
 
+// "like" only counts when it's set off by commas ("and, like, learning"), which is how
+// ElevenLabs writes it when it's a filler. "I like Python" doesn't count.
+export function isFiller(raw: string, before = ""): boolean {
+  const w = clean(raw);
+  if (FILLERS.has(w)) return true;
+  return w === "like" && /,\s*$/.test(raw) && (before === "" || /,\s*$/.test(before));
+}
+
 function clean(word: string): string {
   return word.toLowerCase().replace(/[^a-z']/g, "");
 }
@@ -29,7 +37,7 @@ export function speechStats(all: Word[]): SpeechStats {
   }
 
   const seconds = words[words.length - 1].end - words[0].start;
-  const fillerWords = words.map((w) => clean(w.text)).filter((w) => FILLERS.has(w));
+  const fillerWords = words.filter((w, i) => isFiller(w.text, words[i - 1]?.text ?? "")).map((w) => clean(w.text));
   const longPauses: SpeechStats["longPauses"] = [];
   for (let i = 1; i < words.length; i++) {
     const gap = words[i].start - words[i - 1].end;
@@ -46,11 +54,15 @@ export function speechStats(all: Word[]): SpeechStats {
   return { words: words.length, seconds: Math.round(seconds), wordsPerMinute, fillers: fillerWords.length, fillerWords, longPauses, pace };
 }
 
-export type NervesVerdict = "Nerves helped" | "Nerves hurt" | "Steady" | "No heart reading";
+export type NervesVerdict = "Nerves helped" | "Nerves hurt" | "Steady" | "No heart reading" | "Too short to judge";
+
+// Fewer words than this and there isn't enough of an answer to judge.
+export const MIN_WORDS_TO_JUDGE = 12;
 
 // Did nerves help or hurt this answer?
 // High heart rate + messy delivery = hurt. High heart rate + clean delivery = helped (you stayed sharp).
 export function nervesVerdict(zone: string, stats: SpeechStats): NervesVerdict {
+  if (stats.words < MIN_WORDS_TO_JUDGE) return "Too short to judge";
   if (zone === "Calibrating") return "No heart reading";
   const messy = stats.pace === "Too fast" || stats.fillers >= 4 || stats.longPauses.length >= 2;
   if (zone === "High" || zone === "Alert") return messy ? "Nerves hurt" : "Nerves helped";

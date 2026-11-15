@@ -1,8 +1,13 @@
 // Estimates heart rate from the average color of a skin patch over time.
 // Each heartbeat pushes a little more blood into the face, which slightly changes
-// the skin's color. We use the CHROM method (de Haan & Jeanne, 2013): it combines
-// red, green, and blue so that changes affecting all colors at once (head movement,
-// lighting flicker) cancel out, while the pulse color change remains.
+// the skin's color. We use the POS method ("Plane Orthogonal to Skin", Wang et al., 2017):
+// it combines red, green, and blue so that changes affecting all colors at once
+// (head movement, lighting flicker) cancel out, while the pulse color change remains.
+//
+// Why POS and not CHROM (what InFlow used before): darker skin absorbs more light, so the
+// pulse color change is fainter. In InFlow's own tests with simulated darker skin and normal
+// camera noise, CHROM got the rate right 7 times out of 20; POS got it right 16 times.
+// See heartRate.test.ts, "different skin tones".
 
 export type Sample = { t: number; r: number; g: number; b: number }; // t in ms, colors 0-255
 
@@ -52,12 +57,13 @@ export function estimateBpm(samples: Sample[]): BpmEstimate | null {
   const mb = mean(samples.map((s) => s.b));
   if (mr === 0 || mg === 0 || mb === 0) return null;
 
-  // 2. CHROM: two color combinations, then mix them so shared noise cancels.
-  const x = removeDrift(samples.map((s) => 3 * (s.r / mr) - 2 * (s.g / mg)), half);
-  const y = removeDrift(samples.map((s) => 1.5 * (s.r / mr) + s.g / mg - 1.5 * (s.b / mb)), half);
-  const sy = std(y);
-  const alpha = sy > 0 ? std(x) / sy : 0;
-  const signal = x.map((xi, i) => xi - alpha * y[i]);
+  // 2. POS: two color combinations that are both blind to plain brightness changes,
+  //    then mixed so whatever noise they share cancels and the pulse adds up.
+  const s1 = removeDrift(samples.map((s) => s.g / mg - s.b / mb), half);
+  const s2 = removeDrift(samples.map((s) => s.g / mg + s.b / mb - 2 * (s.r / mr)), half);
+  const sd2 = std(s2);
+  const alpha = sd2 > 0 ? std(s1) / sd2 : 0;
+  const signal = s1.map((v, i) => v + alpha * s2[i]);
 
   // 3. Taper the edges of the window so its start and end don't create fake rhythms.
   const tapered = signal.map((v, i) => v * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (n - 1))));
