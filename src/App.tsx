@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { estimateBpm, type Sample } from "./sensing/heartRate";
 import { createFaceTracker, lockBox, type Box } from "./sensing/faceTracker";
+import { BpmSmoother } from "./sensing/bpmSmoother";
 
 // Used only if face tracking fails to load: a fixed box where the forehead usually is.
 const FALLBACK_BOX: Box = { x: 0.4, y: 0.18, w: 0.2, h: 0.12 };
@@ -21,6 +22,7 @@ export default function App() {
     let tracker: Awaited<ReturnType<typeof createFaceTracker>> | null = null;
     let roi: Box = FALLBACK_BOX;
     const samples: Sample[] = [];
+    const smoother = new BpmSmoother();
 
     // Small hidden canvas used to read pixel colors from the forehead box.
     const canvas = document.createElement("canvas");
@@ -71,7 +73,8 @@ export default function App() {
             setBox(roi);
             const result = estimateBpm(samples);
             if (result) {
-              setBpm(result.bpm);
+              const steady = smoother.push(result.bpm, result.quality);
+              if (steady !== null) setBpm(steady);
               setQuality(result.quality);
             }
           }
