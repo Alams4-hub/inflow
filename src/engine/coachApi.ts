@@ -3,12 +3,13 @@
 import type { Problem } from "../modes/code/problem";
 import type { RunOutput } from "../modes/code/pythonRunner";
 import type { SessionEvent, SessionSummary } from "../session/session";
+import { localTakeaway } from "./takeaway";
 
 const TIMEOUT_MS = 8000;
 
-async function post(body: unknown): Promise<string> {
+async function post(body: unknown, timeoutMs = TIMEOUT_MS): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch("/api/coach", {
       method: "POST",
@@ -50,11 +51,10 @@ export async function getNudge(
 
 export async function getSessionTakeaway(summary: SessionSummary, events: SessionEvent[]): Promise<string> {
   try {
-    return await post({ kind: "summary", session: { summary, events } });
+    // A recap isn't urgent like a hint, so give Gemini more time.
+    return await post({ kind: "summary", session: { summary, events } }, 25000);
   } catch (err) {
     console.warn("Using built-in summary:", err);
-    if (summary.solved && summary.nudges === 0) return "You solved it on your own. Struggling through it is exactly how it sticks.";
-    if (summary.solved) return "You solved it with a little help. Next time, try testing unusual inputs (like negative numbers) before running.";
-    return "You didn't finish this one yet. Come back to it fresh. The struggle you put in still counts.";
+    return localTakeaway(summary, events);
   }
 }

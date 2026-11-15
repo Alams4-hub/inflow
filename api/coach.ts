@@ -24,8 +24,12 @@ Rules:
   3 = point to the part of the code to look at.
   4 = explain the idea of the fix in plain words, still no code.`;
 
-const SUMMARY_RULES = `You write a short recap of a coding practice session for a student.
-At most 3 sentences: one thing they did well, where they got stuck, and one concrete tip for next time.
+const SUMMARY_RULES = `You write a short recap of a coding practice session for a student, talking to them as "you".
+You get the problem, the session summary, and every event with its time in ms (runs with tests passed,
+when they got stuck, hints given). heart.baseline is their usual heart rate.
+At most 3 sentences and specific to THIS session: mention real numbers from it (how long, how many runs,
+when they got stuck and for how long, how their heart rate changed compared with their usual),
+then one concrete tip that fits what went wrong here. Never a generic line that could fit any session.
 Plain, honest words. No hype, no emojis, no code.`;
 
 const INTERVIEW_QUESTION_RULES = `You are a sharp, friendly job interviewer having a real conversation.
