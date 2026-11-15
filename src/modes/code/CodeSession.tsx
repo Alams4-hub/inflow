@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SensingState } from "../../sensing/useSensing";
 import type { CoachLine } from "../../ui/PulseStrip";
 import Report from "../../ui/Report";
+import Picker from "../../ui/Picker";
 import CodeMode from "./CodeMode";
 import { FIX_PROBLEMS, MBPP_PROBLEMS, PROBLEMS, type Problem } from "./problem";
 import type { RunOutput } from "./pythonRunner";
@@ -132,30 +133,22 @@ export default function CodeSession({ sensing, onCoach }: Props) {
   return (
     <div>
       <div className="code-toolbar">
-        <label htmlFor="problem" style={{ color: color.muted }}>
-          Practice problem
-        </label>
-        <select
-          id="problem"
+        <span style={{ color: color.muted }}>Practice problem</span>
+        <Picker
+          label="Practice problem"
+          searchable
+          width={380}
           value={problem.id}
-          onChange={(e) => restart(PROBLEMS.find((p) => p.id === e.target.value) ?? PROBLEMS[0])}
-          style={{ maxWidth: 360, borderRadius: 999, padding: "10px 18px" }}
-        >
-          <optgroup label="Fix the bug">
-            {FIX_PROBLEMS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label={`Write it yourself (${MBPP_PROBLEMS.length} from MBPP)`}>
-            {MBPP_PROBLEMS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </optgroup>
-        </select>
+          onChange={(id) => restart(PROBLEMS.find((p) => p.id === id) ?? PROBLEMS[0])}
+          groups={[
+            { label: "Fix the bug", note: `${FIX_PROBLEMS.length} problems`, options: FIX_PROBLEMS.map((p) => ({ value: p.id, label: p.title })) },
+            {
+              label: "Write it yourself",
+              note: `${MBPP_PROBLEMS.length} from MBPP`,
+              options: MBPP_PROBLEMS.map((p) => ({ value: p.id, label: p.title })),
+            },
+          ]}
+        />
         <button
           className="secondary"
           onClick={() => {

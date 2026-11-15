@@ -4,6 +4,7 @@ import { color } from "../../ui/tokens";
 import { buildTimeline } from "./answerTimeline";
 import { isTalk, type InterviewerTone, type InterviewKind } from "./interviewApi";
 import { PulseScore } from "./ReportVisuals";
+import Picker from "../../ui/Picker";
 
 const OTHER = "__other__";
 
@@ -94,21 +95,16 @@ export default function InterviewSetup({ role, onRole, tone, onTone, kind, onKin
           helped and where they hurt.
         </p>
 
-        <label htmlFor="role" className="field-label">
-          What are you practicing for?
-        </label>
-        <select id="role" value={choice} onChange={(e) => pick(e.target.value)} className="role-select">
-          {ROLE_GROUPS.map((g) => (
-            <optgroup key={g.label} label={g.label}>
-              {g.roles.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-          <option value={OTHER}>Something else...</option>
-        </select>
+        <div className="field-label">What are you practicing for?</div>
+        <Picker
+          label="What are you practicing for"
+          value={choice}
+          onChange={pick}
+          groups={[
+            ...ROLE_GROUPS.map((g) => ({ label: g.label, options: g.roles.map((r) => ({ value: r, label: r })) })),
+            { label: "Your own", options: [{ value: OTHER, label: "Something else...", hint: "type it in" }] },
+          ]}
+        />
         {choice === OTHER && (
           <input
             autoFocus
