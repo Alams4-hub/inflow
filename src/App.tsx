@@ -1,20 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { estimateBpm, type Sample } from "./sensing/heartRate";
-import { createFaceTracker, type Box } from "./sensing/faceTracker";
+import { createFaceTracker, lockBox, type Box } from "./sensing/faceTracker";
 
 // Used only if face tracking fails to load: a fixed box where the forehead usually is.
 const FALLBACK_BOX: Box = { x: 0.4, y: 0.18, w: 0.2, h: 0.12 };
-const WINDOW_MS = 10_000; // use the last 10 seconds of video
-
-// Move the box part of the way toward the new position, so it doesn't jitter.
-function smooth(prev: Box, next: Box, amount = 0.3): Box {
-  return {
-    x: prev.x + (next.x - prev.x) * amount,
-    y: prev.y + (next.y - prev.y) * amount,
-    w: prev.w + (next.w - prev.w) * amount,
-    h: prev.h + (next.h - prev.h) * amount,
-  };
-}
+const WINDOW_MS = 12_000; // use the last 12 seconds of video
 
 export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -46,7 +36,7 @@ export default function App() {
         if (tracker) {
           const face = tracker.detect(video);
           if (face) {
-            roi = smooth(roi, face.forehead);
+            roi = lockBox(roi, face.forehead);
             setStatus("Tracking your face");
           } else {
             faceFound = false;
@@ -59,13 +49,20 @@ export default function App() {
           const vh = video.videoHeight;
           ctx.drawImage(video, roi.x * vw, roi.y * vh, roi.w * vw, roi.h * vh, 0, 0, canvas.width, canvas.height);
 
-          // Average green value of the forehead box (pixels are stored as R,G,B,A).
+          // Average red, green, and blue of the forehead box (pixels are stored as R,G,B,A).
           const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          let red = 0;
           let green = 0;
-          for (let i = 1; i < data.length; i += 4) green += data[i];
+          let blue = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            red += data[i];
+            green += data[i + 1];
+            blue += data[i + 2];
+          }
+          const pixels = data.length / 4;
 
           const now = performance.now();
-          samples.push({ t: now, g: green / (data.length / 4) });
+          samples.push({ t: now, r: red / pixels, g: green / pixels, b: blue / pixels });
           while (samples.length > 0 && now - samples[0].t > WINDOW_MS) samples.shift();
 
           // Update the estimate (and the box drawn on screen) once per second.
@@ -132,7 +129,6 @@ export default function App() {
             height: `${box.h * 100}%`,
             border: `2px solid ${goodSignal ? "#2dd4bf" : "#fbbf24"}`,
             borderRadius: 6,
-            transition: "all 0.3s",
           }}
         />
       </div>

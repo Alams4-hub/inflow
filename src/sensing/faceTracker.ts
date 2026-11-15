@@ -70,3 +70,13 @@ export function foreheadFromPoints(points: { x: number; y: number }[]): Box {
     h: faceH * 0.14,
   };
 }
+
+// Keep the box locked in place unless the head really moved.
+// Tiny box shifts every frame change the pixels and add fake rhythm to the signal.
+export function lockBox(current: Box, detected: Box): Box {
+  const dx = detected.x + detected.w / 2 - (current.x + current.w / 2);
+  const dy = detected.y + detected.h / 2 - (current.y + current.h / 2);
+  const moved = Math.hypot(dx, dy) > 0.03;
+  const resized = Math.abs(detected.w - current.w) / current.w > 0.15;
+  return moved || resized ? detected : current;
+}
