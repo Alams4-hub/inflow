@@ -21,6 +21,7 @@ import {
   transcribe,
   type Coaching,
   type InterviewerTone,
+  type InterviewKind,
   type QA,
 } from "./interviewApi";
 import type { CoachLine } from "../../ui/PulseStrip";
@@ -376,6 +377,8 @@ function MarkKey() {
 export default function InterviewMode({ heart, baseline, gazeRef, onCoach }: Props) {
   const [role, setRole] = useState("General job interview");
   const [tone, setTone] = useState<InterviewerTone>("friendly");
+  const [kind, setKind] = useState<InterviewKind>("behavioral");
+  const [about, setAbout] = useState("");
   const [phase, setPhase] = useState<Phase>("setup");
   const [question, setQuestion] = useState("");
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -423,7 +426,7 @@ export default function InterviewMode({ heart, baseline, gazeRef, onCoach }: Pro
       text: history.length ? "The interviewer is thinking about what you said..." : "The interviewer is picking your first question...",
       tone: "info",
     });
-    await say(await nextQuestion(role, history, tone));
+    await say(await nextQuestion(role, history, tone, kind, about));
   };
 
   const start = () => {
@@ -572,7 +575,20 @@ export default function InterviewMode({ heart, baseline, gazeRef, onCoach }: Pro
   };
 
   if (phase === "setup") {
-    return <InterviewSetup role={role} onRole={setRole} tone={tone} onTone={setTone} questionCount={QUESTION_COUNT} onStart={start} />;
+    return (
+      <InterviewSetup
+        role={role}
+        onRole={setRole}
+        tone={tone}
+        onTone={setTone}
+        kind={kind}
+        onKind={setKind}
+        about={about}
+        onAbout={setAbout}
+        questionCount={QUESTION_COUNT}
+        onStart={start}
+      />
+    );
   }
 
   if (phase === "done") {

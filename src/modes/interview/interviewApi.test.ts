@@ -22,3 +22,12 @@ describe("talks and pitches", () => {
     expect(pickFallbackQuestion([], () => 0, "Pitch your project")).toMatch(/pitch/i);
   });
 });
+
+describe("kinds of interview", () => {
+  it("asks about your project in project mode", () => {
+    expect(pickFallbackQuestion([], () => 0, "General job interview", "project")).toMatch(/build/i);
+  });
+  it("asks technical questions in technical mode", () => {
+    expect(pickFallbackQuestion([], () => 0, "Software engineering", "technical")).toMatch(/list and a set/);
+  });
+});

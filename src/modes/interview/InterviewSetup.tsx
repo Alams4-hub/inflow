@@ -2,7 +2,7 @@
 import { useState, type CSSProperties } from "react";
 import { color } from "../../ui/tokens";
 import { buildTimeline } from "./answerTimeline";
-import { isTalk, type InterviewerTone } from "./interviewApi";
+import { isTalk, type InterviewerTone, type InterviewKind } from "./interviewApi";
 import { PulseScore } from "./ReportVisuals";
 
 const OTHER = "__other__";
@@ -52,7 +52,18 @@ const SAMPLE = (() => {
   );
 })();
 
+const KINDS: { id: InterviewKind; label: string; about: string }[] = [
+  { id: "behavioral", label: "Behavioral", about: "Real stories: a time you failed, disagreed, led, or learned fast." },
+  { id: "technical", label: "Technical", about: "Concepts, design choices and trade-offs, asked out loud. No live coding." },
+  { id: "project", label: "My project", about: "A deep dive on something you built, the way a judge or investor would ask." },
+  { id: "custom", label: "Custom", about: "You decide what it asks about." },
+];
+
 type Props = {
+  kind: InterviewKind;
+  onKind: (kind: InterviewKind) => void;
+  about: string;
+  onAbout: (about: string) => void;
   role: string;
   onRole: (role: string) => void;
   tone: InterviewerTone;
@@ -61,12 +72,13 @@ type Props = {
   onStart: () => void;
 };
 
-export default function InterviewSetup({ role, onRole, tone, onTone, questionCount, onStart }: Props) {
+export default function InterviewSetup({ role, onRole, tone, onTone, kind, onKind, about, onAbout, questionCount, onStart }: Props) {
   const known = ROLE_GROUPS.some((g) => g.roles.includes(role));
   const [choice, setChoice] = useState(known ? role : OTHER);
   const [custom, setCustom] = useState(known ? "" : role);
   const talk = isTalk(role);
-  const ready = role.trim().length > 0;
+  const needsAbout = kind === "project" || kind === "custom";
+  const ready = role.trim().length > 0 && (!needsAbout || about.trim().length >= 10);
 
   const pick = (value: string) => {
     setChoice(value);
@@ -110,6 +122,49 @@ export default function InterviewSetup({ role, onRole, tone, onTone, questionCou
             className="fade-up"
             style={{ display: "block", width: "min(440px, 100%)", marginTop: 8 }}
           />
+        )}
+
+        <div className="field-label" style={{ marginTop: 32 }} id="kind-label">
+          Kind of interview
+        </div>
+        <div role="radiogroup" aria-labelledby="kind-label" className="segmented">
+          {KINDS.map((k) => (
+            <button key={k.id} role="radio" aria-checked={kind === k.id} className={kind === k.id ? "on" : undefined} onClick={() => onKind(k.id)}>
+              {k.label}
+            </button>
+          ))}
+        </div>
+        <p key={kind} className="fade-up voice" style={{ color: color.muted, fontSize: "1.15rem", margin: "12px 0 0" }}>
+          {KINDS.find((k) => k.id === kind)?.about}
+        </p>
+        {needsAbout && (
+          <div className="fade-up" style={{ marginTop: 14 }}>
+            <label htmlFor="about" style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
+              {kind === "project" ? "What did you build? A few sentences is enough." : "What should it ask you about?"}
+            </label>
+            <textarea
+              id="about"
+              value={about}
+              onChange={(e) => onAbout(e.target.value)}
+              rows={4}
+              placeholder={
+                kind === "project"
+                  ? "For example: InFlow, a practice coach that reads your heart rate through the webcam and only steps in when you're stuck. Built at Hack the Nest with React, Gemini and ElevenLabs."
+                  : "For example: my summer research on battery recycling, or SQL joins and indexes"
+              }
+              style={{
+                display: "block",
+                width: "min(440px, 100%)",
+                font: "inherit",
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: `1px solid ${color.line}`,
+                background: color.surface,
+                color: color.ink,
+                resize: "vertical",
+              }}
+            />
+          </div>
         )}
 
         <div className="field-label" style={{ marginTop: 32 }} id="tone-label">

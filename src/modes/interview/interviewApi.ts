@@ -23,12 +23,37 @@ const FALLBACK_TALK_QUESTIONS = [
   "Explain your idea to someone who has never heard of it.",
 ];
 
+// Fallbacks for the other kinds of interview, used only if Gemini can't be reached.
+const FALLBACK_TECHNICAL_QUESTIONS = [
+  "Explain the difference between a list and a set, and when you'd pick each.",
+  "Walk me through what happens when you type a website address and press enter.",
+  "How would you find out why a page in your app is slow?",
+  "Tell me about a technical trade-off you made. What did you give up?",
+  "How would you explain an API to someone who doesn't code?",
+];
+const FALLBACK_PROJECT_QUESTIONS = [
+  "In one minute: what did you build, and who is it for?",
+  "What was the hardest part to get working, and how did you get past it?",
+  "What part of your demo is real, and what part is still a mock-up?",
+  "If you had another month, what would you build next and why?",
+  "Why would someone use this instead of what already exists?",
+];
+
+export type InterviewKind = "behavioral" | "technical" | "project" | "custom";
+
 export function isTalk(role: string): boolean {
   return /pitch|presentation|talk|speech|demo/i.test(role);
 }
 
-export function pickFallbackQuestion(asked: string[], random = Math.random, role = ""): string {
-  const all = isTalk(role) ? FALLBACK_TALK_QUESTIONS : FALLBACK_QUESTIONS;
+export function pickFallbackQuestion(asked: string[], random = Math.random, role = "", kind: InterviewKind = "behavioral"): string {
+  const all =
+    kind === "project"
+      ? FALLBACK_PROJECT_QUESTIONS
+      : kind === "technical"
+        ? FALLBACK_TECHNICAL_QUESTIONS
+        : isTalk(role)
+          ? FALLBACK_TALK_QUESTIONS
+          : FALLBACK_QUESTIONS;
   const unused = all.filter((q) => !asked.includes(q));
   const pool = unused.length ? unused : all;
   return pool[Math.floor(random() * pool.length)];
@@ -65,9 +90,15 @@ export type QA = { question: string; answer: string };
 
 export type InterviewerTone = "friendly" | "neutral" | "tough";
 
-export async function nextQuestion(role: string, history: QA[], tone: InterviewerTone = "friendly"): Promise<string> {
+export async function nextQuestion(
+  role: string,
+  history: QA[],
+  tone: InterviewerTone = "friendly",
+  kind: InterviewKind = "behavioral",
+  about = "",
+): Promise<string> {
   try {
-    const { text } = await post<{ text: string }>("/api/coach", { kind: "interview-question", role, history, tone }, 22000);
+    const { text } = await post<{ text: string }>("/api/coach", { kind: "interview-question", role, history, tone, kind2: kind, about }, 22000);
     return text;
   } catch (err) {
     console.warn("Using built-in question:", err);
@@ -75,6 +106,7 @@ export async function nextQuestion(role: string, history: QA[], tone: Interviewe
       history.map((h) => h.question),
       Math.random,
       role,
+      kind,
     );
   }
 }

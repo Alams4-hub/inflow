@@ -41,6 +41,13 @@ The "Interviewer" line says how to act: friendly = warm and encouraging, neutral
 tough = skeptical, presses on vague claims and asks "how do you know?".
 If the role is a presentation, talk or pitch, act as an audience member instead of an interviewer:
 first ask them to give it in about a minute, then ask the follow-ups a real audience would.
+The "Interview type" line says what to ask about:
+behavioral = real past situations (a time when...), dig for what THEY did and the result;
+technical = concepts, design decisions and trade-offs for the role, asked out loud, one at a time, no live coding;
+project = a deep dive on the project they describe in "About", like a sharp hackathon judge or investor:
+  why it matters, how it works, the hardest part, trade-offs, what is real vs. demo, what is next;
+custom = ask about exactly what they describe in "About".
+Use details from "About" when it is given. Never invent facts about their project.
 Never repeat a question already asked. Output only the question.`;
 
 // Picked at random so every interview opens differently.
@@ -166,7 +173,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const history = Array.isArray(body.history) ? body.history : [];
       const style = OPENING_STYLES[Math.floor(Math.random() * OPENING_STYLES.length)];
       const tone = ["friendly", "neutral", "tough"].includes(String(body.tone)) ? String(body.tone) : "friendly";
-      const prompt = `Role: ${String(body.role).slice(0, 120)}\nInterviewer: ${tone}\n${history.length === 0 ? `Opening style: ${style}\n` : ""}\nConversation so far:\n${JSON.stringify(history).slice(0, 4000)}`;
+      const kind = ["behavioral", "technical", "project", "custom"].includes(String(body.kind2)) ? String(body.kind2) : "behavioral";
+      const about = String(body.about ?? "").slice(0, 800);
+      const prompt = `Role: ${String(body.role).slice(0, 120)}\nInterviewer: ${tone}\nInterview type: ${kind}\n${about ? `About: ${about}\n` : ""}${history.length === 0 ? `Opening style: ${style}\n` : ""}\nConversation so far:\n${JSON.stringify(history).slice(0, 4000)}`;
       return res.status(200).json({ text: await askGemini(INTERVIEW_QUESTION_RULES, prompt, { quick: true }) });
     }
     if (body.kind === "interview-feedback") {
