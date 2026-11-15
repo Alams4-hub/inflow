@@ -4,7 +4,7 @@ import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 export type Box = { x: number; y: number; w: number; h: number };
 
 export type FaceReading = {
-  forehead: Box;
+  regions: Box[]; // skin areas to read the pulse from: forehead, left cheek, right cheek
   blendshapes: Record<string, number>; // e.g. browDownLeft: 0.42 (used later for tension)
 };
 
@@ -39,7 +39,7 @@ export async function createFaceTracker() {
         blendshapes[c.categoryName] = c.score;
       }
 
-      return { forehead: foreheadFromPoints(points), blendshapes };
+      return { regions: skinRegionsFromPoints(points), blendshapes };
     },
     close() {
       landmarker.close();
@@ -47,10 +47,9 @@ export async function createFaceTracker() {
   };
 }
 
-// The face mesh's top edge sits near the top of the forehead, and the eyebrows
-// are roughly a quarter of the way down. So the forehead is a strip near the top,
-// in the middle of the face.
-export function foreheadFromPoints(points: { x: number; y: number }[]): Box {
+type Bounds = { minX: number; minY: number; faceW: number; faceH: number };
+
+function faceBounds(points: { x: number; y: number }[]): Bounds {
   let minX = 1;
   let maxX = 0;
   let minY = 1;
@@ -61,14 +60,30 @@ export function foreheadFromPoints(points: { x: number; y: number }[]): Box {
     minY = Math.min(minY, p.y);
     maxY = Math.max(maxY, p.y);
   }
-  const faceW = maxX - minX;
-  const faceH = maxY - minY;
-  return {
-    x: minX + faceW * 0.3,
-    y: minY + faceH * 0.06,
-    w: faceW * 0.4,
-    h: faceH * 0.14,
-  };
+  return { minX, minY, faceW: maxX - minX, faceH: maxY - minY };
+}
+
+// The face mesh's top edge sits near the top of the forehead, and the eyebrows
+// are roughly a quarter of the way down. So the forehead is a strip near the top,
+// in the middle of the face.
+export function foreheadFromPoints(points: { x: number; y: number }[]): Box {
+  const { minX, minY, faceW, faceH } = faceBounds(points);
+  return { x: minX + faceW * 0.3, y: minY + faceH * 0.06, w: faceW * 0.4, h: faceH * 0.14 };
+}
+
+// Cheeks sit below the eyes and to the sides of the nose (about halfway down the face).
+// Reading cheeks as well as the forehead gives much more skin, so a stronger pulse signal,
+// and still works when a hat or hair covers the forehead.
+export function skinRegionsFromPoints(points: { x: number; y: number }[]): Box[] {
+  const { minX, minY, faceW, faceH } = faceBounds(points);
+  const cheekY = minY + faceH * 0.52;
+  const cheekH = faceH * 0.16;
+  const cheekW = faceW * 0.22;
+  return [
+    foreheadFromPoints(points),
+    { x: minX + faceW * 0.12, y: cheekY, w: cheekW, h: cheekH },
+    { x: minX + faceW * 0.66, y: cheekY, w: cheekW, h: cheekH },
+  ];
 }
 
 // Keep the box locked in place unless the head really moved.

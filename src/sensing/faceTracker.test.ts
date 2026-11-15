@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { foreheadFromPoints, lockBox, type Box } from "./faceTracker";
+import { foreheadFromPoints, lockBox, skinRegionsFromPoints, type Box } from "./faceTracker";
 
 describe("foreheadFromPoints", () => {
   const face = [
@@ -45,5 +45,40 @@ describe("lockBox", () => {
   it("follows when the face gets much closer or farther", () => {
     const detected = { ...current, w: 0.26 };
     expect(lockBox(current, detected)).toBe(detected);
+  });
+});
+
+describe("skinRegionsFromPoints", () => {
+  const face = [
+    { x: 0.3, y: 0.2 },
+    { x: 0.7, y: 0.2 },
+    { x: 0.5, y: 0.8 },
+  ];
+  const [forehead, left, right] = skinRegionsFromPoints(face);
+
+  it("returns the forehead plus two cheeks", () => {
+    expect(skinRegionsFromPoints(face)).toHaveLength(3);
+    expect(forehead).toEqual(foreheadFromPoints(face));
+  });
+
+  it("puts the cheeks below the forehead, around the middle of the face", () => {
+    expect(left.y).toBeGreaterThan(forehead.y + forehead.h);
+    expect(left.y).toBeGreaterThan(0.2 + 0.6 * 0.45);
+    expect(left.y + left.h).toBeLessThan(0.2 + 0.6 * 0.75);
+  });
+
+  it("places the cheeks on opposite sides, the same size, without overlapping", () => {
+    expect(left.x + left.w).toBeLessThan(right.x);
+    expect(left.w).toBeCloseTo(right.w);
+    expect(left.y).toBeCloseTo(right.y);
+  });
+
+  it("keeps every region inside the face", () => {
+    for (const r of skinRegionsFromPoints(face)) {
+      expect(r.x).toBeGreaterThanOrEqual(0.3);
+      expect(r.x + r.w).toBeLessThanOrEqual(0.7);
+      expect(r.y).toBeGreaterThanOrEqual(0.2);
+      expect(r.y + r.h).toBeLessThanOrEqual(0.8);
+    }
   });
 });

@@ -1,111 +1,222 @@
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap");
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --paper: #f2f4f1;
+  --surface: #ffffff;
+  --surface-2: #e8edea;
+  --line: #d3dcd8;
+  --ink: #1e2b29;
+  --muted: #5f706c;
+  --tide: #24635d;
+  --tide-soft: #d6e7e3;
+  --calm: #4e9f7f;
+  --alert: #d8962b;
+  --high: #c9503f;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+* {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-width: 320px;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
+h2,
+h3 {
+  line-height: 1.2;
   margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+}
+h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 24px;
 }
 p {
-  margin: 0;
+  margin: 0 0 12px;
+  max-width: 72ch;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--tide);
+  background: var(--tide);
+  color: white;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button.secondary {
+  background: transparent;
+  color: var(--tide);
+}
+button.danger {
+  background: var(--high);
+  border-color: var(--high);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+input,
+select {
+  font: inherit;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--tide);
+  outline-offset: 2px;
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ---------- Motion ----------
+   Every animation here shows real data (heartbeat, voice) or answers something
+   the user did (a run, a hint, a new message). Turned off for reduced motion above. */
+
+/* The camera ring beats once per measured heartbeat. Duration is set from BPM in code. */
+@keyframes beat {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--beat-color, transparent);
+  }
+  12% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--beat-color, transparent) 25%, transparent);
+  }
+  30% {
+    transform: scale(1);
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+.beating {
+  animation: beat var(--beat-duration, 1s) ease-out infinite;
+}
+
+/* The pulse wave flows between updates instead of jumping (Chrome and Edge). */
+.wave-path {
+  transition: d 1s linear, stroke 0.6s ease;
+}
+
+/* New coach message glides in. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fade-up {
+  animation: fade-up 0.35s ease-out both;
+}
+
+/* A hint slides down into view and glows once. */
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes glow-once {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--alert) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+.slide-down {
+  animation: slide-down 0.4s ease-out both, glow-once 1.2s ease-out 0.3s both;
+}
+
+/* Test results appear one by one after a run (delay set per row in code). */
+.row-in {
+  animation: fade-up 0.3s ease-out both;
+}
+
+/* Home screen: the pulse line draws itself across once. */
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.draw-line {
+  stroke-dasharray: 1;
+  animation: draw 2.4s cubic-bezier(0.6, 0, 0.2, 1) 0.2s both;
+}
+
+/* The interviewer's voice orb, while ElevenLabs is speaking. */
+@keyframes orb {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+.orb {
+  animation: orb 1.1s ease-in-out infinite;
+}
+
+/* Choice cards on the home screen lift slightly when focused or hovered. */
+.choice {
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.choice:hover,
+.choice:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--tide);
 }

@@ -31,7 +31,13 @@ function removeDrift(xs: number[], half: number): number[] {
   });
 }
 
-export function estimateBpm(samples: Sample[]): { bpm: number; quality: number } | null {
+export type BpmEstimate = {
+  bpm: number;
+  quality: number; // 0 to 1: how much the winning rate stands out in this one window
+  wave: number[]; // the cleaned pulse signal, for drawing a live waveform
+};
+
+export function estimateBpm(samples: Sample[]): BpmEstimate | null {
   if (samples.length < 64) return null; // need a few seconds of data first
 
   const n = samples.length;
@@ -83,5 +89,13 @@ export function estimateBpm(samples: Sample[]): { bpm: number; quality: number }
   const steps = (MAX_BPM - MIN_BPM) / 0.5 + 1;
   const quality = totalPower > 0 ? Math.min(1, (bestPower / totalPower) * (steps / 20)) : 0;
 
-  return { bpm: Math.round(bestBpm), quality };
+  // 6. A lightly smoothed copy of the pulse signal, for drawing on screen.
+  const wave = signal.map((_, i) => {
+    const a = signal[Math.max(0, i - 1)];
+    const b = signal[i];
+    const c = signal[Math.min(n - 1, i + 1)];
+    return (a + b + c) / 3;
+  });
+
+  return { bpm: Math.round(bestBpm), quality, wave };
 }
